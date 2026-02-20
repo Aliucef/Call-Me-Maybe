@@ -59,28 +59,28 @@ def allowed_for_prefix(
 
 
 def main():
-    llm = Small_LLM_Model()
+    llm = Small_LLM_Model() # from ll_sdk qwen 0.6 b params
 
-    vocab_path = llm.get_path_to_vocabulary_json()
-    token_to_id, id_to_token = load_vocab_maps(vocab_path)
+    vocab_path = llm.get_path_to_vocabulary_json() # get the path to the vocab.json file
+    token_to_id, id_to_token = load_vocab_maps(vocab_path) # this will load the the id : token and token : id from the vocabs
 
     # IMPORTANT: model cannot accept empty input_ids. Seed with BOS (or EOS fallback).
-    bos = llm._tokenizer.bos_token_id
+    bos = llm._tokenizer.bos_token_id # google this
     eos = llm._tokenizer.eos_token_id
     seed_id = bos if bos is not None else eos
     input_ids: list[int] = [seed_id]
 
-    LBRACE = token_to_id["{"]
-    QUOTE = token_to_id['"']
+    LBRACE = token_to_id["{"] #This will print the ID of token {
+    QUOTE = token_to_id['"'] #same here for "
 
     # State 1: force "{"
-    logits = llm.get_logits_from_input_ids(input_ids)
-    mask_logits_in_place(logits, {LBRACE})
+    logits = llm.get_logits_from_input_ids(input_ids) # scores for each token
+    mask_logits_in_place(logits, {LBRACE}) # this will mask everything until its {
     next_id = argmax(logits)
     input_ids.append(next_id)
 
     # State 2: force '"'
-    logits = llm.get_logits_from_input_ids(input_ids)
+    logits = llm.get_logits_from_input_ids(input_ids) # same here
     mask_logits_in_place(logits, {QUOTE})
     next_id = argmax(logits)
     input_ids.append(next_id)
