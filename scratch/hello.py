@@ -62,7 +62,8 @@ def main():
     llm = Small_LLM_Model() # from ll_sdk qwen 0.6 b params
 
     vocab_path = llm.get_path_to_vocabulary_json() # get the path to the vocab.json file
-    token_to_id, id_to_token = load_vocab_maps(vocab_path) # this will load the the id : token and token : id from the vocabs
+    token_to_id, id_to_token = load_vocab_maps(vocab_path) # this will load the the id : token and token : id from the vocabs 
+    # usually it returns def load_vocab_maps(vocab_path: str) -> tuple[dict[str, int], list[str]]
 
     # IMPORTANT: model cannot accept empty input_ids. Seed with BOS (or EOS fallback).
     bos = llm._tokenizer.bos_token_id # google this
@@ -72,9 +73,11 @@ def main():
 
     LBRACE = token_to_id["{"] #This will print the ID of token {
     QUOTE = token_to_id['"'] #same here for "
+    RBRACE = token_to_id["}"] # this will print the ID of token }
+
 
     # State 1: force "{"
-    logits = llm.get_logits_from_input_ids(input_ids) # scores for each token
+    logits = llm.get_logits_from_input_ids(input_ids) # scores for each token // still gotta figure out whats input_ids
     mask_logits_in_place(logits, {LBRACE}) # this will mask everything until its {
     next_id = argmax(logits)
     input_ids.append(next_id)
@@ -89,6 +92,11 @@ def main():
     target_key = "prompt"
     built = ""
 
+    logits = llm.get_logits_from_input_ids(input_ids)
+    mask_logits_in_place(logits, {RBRACE})
+    next_id = argmax(logits)
+    input_ids.append( next_id)
+    
     while built != target_key:
         logits = llm.get_logits_from_input_ids(input_ids)
 
