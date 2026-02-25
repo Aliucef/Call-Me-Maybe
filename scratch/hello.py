@@ -62,7 +62,7 @@ def main():
     llm = Small_LLM_Model() # from ll_sdk qwen 0.6 b params
 
     vocab_path = llm.get_path_to_vocabulary_json() # get the path to the vocab.json file
-    token_to_id, id_to_token = load_vocab_maps(vocab_path) # this will load the the id : token and token : id from the vocabs 
+    token_to_id, id_to_token = load_vocab_maps(vocab_path) # this will load the the id : token and token : id from the vocabs
     # usually it returns def load_vocab_maps(vocab_path: str) -> tuple[dict[str, int], list[str]]
 
     # IMPORTANT: model cannot accept empty input_ids. Seed with BOS (or EOS fallback).
@@ -96,7 +96,7 @@ def main():
     mask_logits_in_place(logits, {RBRACE})
     next_id = argmax(logits)
     input_ids.append( next_id)
-    
+
     while built != target_key:
         logits = llm.get_logits_from_input_ids(input_ids)
 

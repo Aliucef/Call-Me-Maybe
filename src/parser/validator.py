@@ -32,11 +32,10 @@ def load_prompt_examples(path : Path):
         raise SystemExit("File not found error")
     except json.JSONDecodeError:
         raise SystemError("json error")
-    
+
     if not isinstance(data , list):
         raise SystemExit("must contain json array")
     try:
         return TypeAdapter(list[PormptExample]).validate_python(data)
     except ValidationError as e:
         raise SystemError(f"fail structure {e}")
-      

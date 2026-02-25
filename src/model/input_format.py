@@ -12,5 +12,14 @@ class FunctionDef(BaseModel):
     returns: dict[str, Any] | None = None
 
 
+class OutputDict(BaseModel):
+    prompt: str
+    name: str
+    parameters: dict[str, Any]
+
+
+class Output(BaseModel):
+    obj: list[OutputDict]
+
 class PormptExample(BaseModel):
     prompt: str
