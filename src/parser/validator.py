@@ -1,7 +1,7 @@
 
 from pathlib import Path
 from pydantic import TypeAdapter, ValidationError
-from model.input_format import FunctionDef, PormptExample
+from src.model.input_format import FunctionDef, PormptExample
 import json
 
 

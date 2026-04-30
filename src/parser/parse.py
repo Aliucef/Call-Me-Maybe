@@ -1,5 +1,5 @@
 import argparse
-from utils.constants import FLAG1, FLAG2, FLAG3
+from src.utils.constants import FLAG1, FLAG2, FLAG3
 from pathlib import Path
 
 def parse_args():
@@ -7,7 +7,7 @@ def parse_args():
         prog="function-calling",
         description="Generate function-calling JSON results from prompts."
     )
-    
+
     params.add_argument(FLAG1, required=True, type=Path,
                    help="Path to function_definitions.json")
 
