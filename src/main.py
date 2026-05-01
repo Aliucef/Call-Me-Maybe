@@ -1,7 +1,7 @@
-from src.decoder.number_decoder import decode_number
 from src.parser.parse import parse_args
 from src.parser.validator import load_function_definitions, load_prompt_examples
 from src.model.input_format import OutputDict
+from src.decoder.number_decoder import decode_number
 
 import json
 from llm_sdk import Small_LLM_Model
