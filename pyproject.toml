@@ -9,4 +9,22 @@ dependencies = [
     "torch",
     "transformers",
     "huggingface_hub",
+    "accelerate",
+    "pytest",
 ]
+
+[dependency-groups]
+dev = [
+    "flake8>=7.3.0",
+    "mypy>=2.3.0",
+]
+
+[tool.mypy]
+exclude = ["llm_sdk/"]
+
+[[tool.mypy.overrides]]
+module = "llm_sdk"
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Any
 
+
 class ParameterSchema(BaseModel):
     type: str
 
@@ -20,6 +21,7 @@ class OutputDict(BaseModel):
 
 class Output(BaseModel):
     obj: list[OutputDict]
+
 
 class PormptExample(BaseModel):
     prompt: str

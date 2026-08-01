@@ -1,22 +1,23 @@
-from llm_sdk import Small_LLM_Model
+from src.model.input_format import FunctionDef
+from src.model.llm_protocol import LLMProtocol
 
 
 def choose_function_name(
-    llm: Small_LLM_Model,
+    llm: LLMProtocol,
     prompt_text: str,
-    functions,
+    functions: list[FunctionDef],
     name_to_ids: dict[str, list[int]],
+    verbose: bool = False,
 ) -> str:
-    tok = llm._tokenizer
-    bos = tok.bos_token_id
-    eos = tok.eos_token_id
-    seed = bos if bos is not None else eos
+    """Select the best matching function name using constrained greedy decoding.
 
-    lines = []
-    for f in functions:
-        line = f"- {f.name}: {f.description or ''} params={list(f.parameters.keys())}"
-        lines.append(line)
-
+    At each step only tokens that continue a valid candidate function name
+    are eligible, so the result is always a name from name_to_ids.
+    """
+    lines = [
+        f"- {f.name}: {f.description or ''} params={list(f.parameters.keys())}"
+        for f in functions
+    ]
     menu = "\n".join(lines)
     context = (
         "Choose the best function for the request.\n"
@@ -26,7 +27,7 @@ def choose_function_name(
         "Answer with the function name only:\n"
     )
 
-    input_ids = [seed] + tok.encode(context, add_special_tokens=False)
+    input_ids: list[int] = llm.encode(context).squeeze(0).tolist()
     candidates = dict(name_to_ids)
     pos = 0
 
@@ -38,8 +39,15 @@ def choose_function_name(
         logits = llm.get_logits_from_input_ids(input_ids)
         next_id = max(allowed, key=lambda tid: logits[tid])
 
-        input_ids.append(next_id)
+        if verbose:
+            top = sorted(
+                candidates,
+                key=lambda n: logits[candidates[n][pos]] if pos < len(candidates[n]) else -1e30,
+                reverse=True,
+            )[:3]
+            print(f"  [fn step {pos}] candidates={top} -> token_id={next_id}")
 
+        input_ids.append(next_id)
         candidates = {
             name: ids
             for name, ids in candidates.items()
@@ -51,5 +59,16 @@ def choose_function_name(
             (only_name, only_ids), = candidates.items()
             if pos >= len(only_ids):
                 return only_name
-    print("hello")
-    return next(iter(name_to_ids.keys()))
+
+    # Recovery: score every function name by the sum of logits of its tokens
+    if not candidates:
+        logits = llm.get_logits_from_input_ids(input_ids)
+        best = max(
+            name_to_ids,
+            key=lambda n: sum(logits[tid] for tid in name_to_ids[n] if tid < len(logits)),
+        )
+        if verbose:
+            print(f"  [fn recovery] no candidates left, scored all -> {best}")
+        return best
+
+    return next(iter(candidates))

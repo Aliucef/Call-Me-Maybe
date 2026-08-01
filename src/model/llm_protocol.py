@@ -1,0 +1,13 @@
+from typing import Any, Protocol
+
+
+class LLMProtocol(Protocol):
+    """Structural interface of Small_LLM_Model used by the student decoders."""
+
+    def encode(self, text: str) -> Any: ...
+
+    def decode(self, ids: Any) -> str: ...
+
+    def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]: ...
+
+    def get_path_to_vocab_file(self) -> str: ...
