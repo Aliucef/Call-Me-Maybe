@@ -59,8 +59,6 @@ def choose_function_name(
             (only_name, only_ids), = candidates.items()
             if pos >= len(only_ids):
                 return only_name
-
-    # Recovery: score every function name by the sum of logits of its tokens
     if not candidates:
         logits = llm.get_logits_from_input_ids(input_ids)
         best = max(

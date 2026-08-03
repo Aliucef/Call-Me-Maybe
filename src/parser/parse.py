@@ -1,33 +1,33 @@
 import argparse
-from src.utils.constants import FLAG1, FLAG2, FLAG3
 from pathlib import Path
+
+import src.utils.constants as const
 
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     params = argparse.ArgumentParser(
-        prog="function-calling",
-        description="Generate function-calling JSON results from prompts."
+        prog=const.PROG_NAME,
+        description=const.PROG_DESCRIPTION,
     )
-
-    params.add_argument(FLAG1, type=Path,
-                        default=Path("data/input/functions_definition.json"),
-                        help="Path to functions_definition.json")
-    params.add_argument(FLAG2, type=Path,
-                        default=Path("data/input/function_calling_tests.json"),
-                        help="Path to function_calling_tests.json")
-    params.add_argument(FLAG3, type=Path,
-                        default=Path("data/output/function_calling_results.json"),
-                        help="Path to write function_calling_results.json")
+    params.add_argument(const.FLAG1, type=Path,
+                        default=Path(const.PATH1),
+                        help=const.HELP1)
+    params.add_argument(const.FLAG2, type=Path,
+                        default=Path(const.PATH2),
+                        help=const.HELP2)
+    params.add_argument(const.FLAG3, type=Path,
+                        default=Path(const.PATH3),
+                        help=const.HELP3)
     params.add_argument(
-        "--model",
-        default="Qwen/Qwen3-0.6B",
-        help="HuggingFace model identifier (default: Qwen/Qwen3-0.6B)",
+        const.MODEL_FLAG,
+        default=const.MODEL,
+        help=const.MODEL_HELP,
     )
     params.add_argument(
-        "--verbose",
+        const.VERBOSE_FLAG,
         action="store_true",
-        help="Print token-level decoding steps for each prompt",
+        default=False,
+        help=const.VERBOSE_HELP,
     )
-
     return params.parse_args()
