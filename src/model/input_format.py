@@ -19,9 +19,5 @@ class OutputDict(BaseModel):
     parameters: dict[str, Any]
 
 
-class Output(BaseModel):
-    obj: list[OutputDict]
-
-
 class PormptExample(BaseModel):
     prompt: str

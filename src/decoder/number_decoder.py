@@ -1,113 +1,118 @@
+import re
+from collections import Counter
+
+from src.decoder.candidate_chooser import choose_from_candidates
 from src.model.llm_protocol import LLMProtocol
 
-NEG_INF = -1e30
-
-# Cache allowed token sets per partial number string — the vocab is fixed per run.
-_allowed_number_cache: dict[str, set[int]] = {}
+_NUMBER_LITERAL = re.compile(r"-?\d+(?:\.\d+)?")
 
 
-def mask_logits_in_place(logits: list[float], allowed: set[int]) -> None:
-    """Set logits of all tokens not in allowed to NEG_INF in place."""
-    for i in range(len(logits)):
-        if i not in allowed:
-            logits[i] = NEG_INF
+def extract_number_candidates(prompt_text: str) -> list[str]:
+    """Return every number literal that appears verbatim in the prompt, in order."""
+    return _NUMBER_LITERAL.findall(prompt_text)
 
 
-def allowed_next_number_tokens(id_to_token: list[str], built: str) -> set[int]:
-    """Return the set of token IDs that keep the partial string a valid number prefix."""
-    if built in _allowed_number_cache:
-        return _allowed_number_cache[built]
-
-    allowed: set[int] = set()
-    for tid, tok in enumerate(id_to_token):
-        if not tok:
-            continue
-        cand = built + tok
-        s = cand.lstrip()
-        if not s:
-            continue
-        if not all(ch.isdigit() or ch in "-." for ch in s):
-            continue
-        if s.count("-") > 1:
-            continue
-        if "-" in s and not s.startswith("-"):
-            continue
-        if s.count(".") > 1:
-            continue
-        t = s[1:] if s.startswith("-") else s
-        if t.startswith("."):
-            continue
-        if len(t) >= 2 and t[0] == "0" and t[1].isdigit():
-            continue
-        allowed.add(tid)
-
-    _allowed_number_cache[built] = allowed
-    return allowed
-
-
-def decode_number(
+def choose_number(
     llm: LLMProtocol,
     prompt_text: str,
     *,
-    id_to_token: list[str],
     param_name: str | None = None,
     already_extracted: dict[str, object] | None = None,
-    max_steps: int = 12,
     verbose: bool = False,
-) -> float:
-    """Decode a numeric parameter using constrained greedy decoding.
+) -> float | None:
+    """Pick a number that literally appears in the prompt via constrained
+    candidate-narrowing decoding (same mechanism as choose_function_name).
 
-    Only tokens that extend the partial result into a valid number literal
-    are eligible at each step, guaranteeing a parseable float output.
+    Restricts the choice to the actual numbers found in the prompt — the
+    model can never hallucinate a value that isn't there, and picking
+    between a handful of known candidates is an easier task than free
+    generation. Returns None if the prompt has no number-like substrings,
+    or if every occurrence of every number mentioned has already been
+    claimed by an earlier parameter (e.g. "sum of 2 and ?" only has one
+    number for two parameters — the second must not silently repeat the
+    first).
     """
-    instr = (
-        f'Extract the number for parameter "{param_name}".'
-        if param_name else "Extract the number."
+    candidate_strs = extract_number_candidates(prompt_text)
+    if not candidate_strs:
+        return None
+
+    # Count *occurrences*, not just distinct values, so "sum of 2 and 2"
+    # (two real occurrences of 2) still correctly allows both parameters
+    # to get 2.0, while "sum of 2 and ?" (one occurrence) correctly runs
+    # out of candidates for the second parameter instead of reusing the
+    # first value just because it's the only one that exists.
+    prompt_counts = Counter(float(s) for s in candidate_strs)
+    used_counts = Counter(
+        float(v)
+        for v in (already_extracted or {}).values()
+        if isinstance(v, (int, float)) and not isinstance(v, bool)
     )
+
+    unique_strs = list(dict.fromkeys(candidate_strs))
+    remaining = [s for s in unique_strs if prompt_counts[float(s)] > used_counts[float(s)]]
+    if not remaining:
+        return None
+
+    candidates_by_key = {
+        s: ids
+        for s, ids in ((s, llm.encode(s).squeeze(0).tolist()) for s in remaining)
+        if ids
+    }
+    if not candidates_by_key:
+        return None
+
+    label = f'"{param_name}"' if param_name else "the number"
+    listing = ", ".join(remaining)
+
     prior = ""
     if already_extracted:
-        pairs = ", ".join(f'{k}={v}' for k, v in already_extracted.items())
+        pairs = ", ".join(f"{k}={v}" for k, v in already_extracted.items())
         prior = f"Already extracted: {pairs}\n"
     context = (
-        f"{instr}\n"
+        f"Pick the number for parameter {label} from the numbers mentioned below.\n"
+        f"Numbers mentioned in the request: {listing}\n"
         f"{prior}"
         f"Request: {prompt_text}\n"
-        "Answer with only the number:\n"
+        "Answer with only one of the numbers listed above:\n"
     )
 
-    input_ids: list[int] = llm.encode(context).squeeze(0).tolist()
-    built = ""
-
-    for step in range(max_steps):
-        logits = llm.get_logits_from_input_ids(input_ids)
-
-        # Stop early when the model's top unconstrained choice is a stop token
-        # (BPE newline Ċ, literal \n, or empty) — number is complete.
-        best_overall = max(range(len(logits)), key=lambda i: logits[i])
-        best_tok = id_to_token[best_overall]
-        if not best_tok or "Ċ" in best_tok or "\n" in best_tok:
-            break
-
-        allowed = allowed_next_number_tokens(id_to_token, built=built)
-        if not allowed:
-            break
-
-        mask_logits_in_place(logits, allowed)
-        next_id = max(range(len(logits)), key=lambda i: logits[i])
-        piece = id_to_token[next_id]
-
-        if verbose:
-            print(f"  [num step {step}] built={repr(built + piece)}")
-
-        built += piece
-        input_ids.append(next_id)
-
-    s = built.strip()
-    if s in {"", "-"}:
-        return 0.0
-    if s.endswith("."):
-        s = s[:-1]
+    chosen = choose_from_candidates(
+        llm, context, candidates_by_key, verbose=verbose, log_label="num-choice",
+    )
     try:
-        return float(s)
+        return float(chosen)
     except ValueError:
-        return 0.0
+        return None
+
+
+def resolve_number(
+    llm: LLMProtocol,
+    prompt_text: str,
+    *,
+    param_name: str | None = None,
+    already_extracted: dict[str, object] | None = None,
+    verbose: bool = False,
+) -> float:
+    """Resolve a numeric parameter end to end.
+
+    Tries choose_number(), which only ever returns a value that literally
+    appears in the prompt. If there is no legitimate number for this
+    parameter -- no number-like substring in the prompt at all, or every
+    occurrence already claimed by an earlier parameter (e.g. "sum of 2
+    and ?" has only one number for two parameters) -- there is nothing to
+    extract, this prints a clear error and defaults to 0.0, since the
+    output schema requires every parameter present with a valid type even
+    when the request is genuinely underspecified.
+    """
+    value = choose_number(
+        llm,
+        prompt_text,
+        param_name=param_name,
+        already_extracted=already_extracted,
+        verbose=verbose,
+    )
+    if value is not None:
+        return value
+    label = f'"{param_name}"' if param_name else "a required number"
+    print(f"[ERROR] Could not find {label} in the request: {prompt_text!r} -- defaulting to 0.0")
+    return 0.0

@@ -1,3 +1,4 @@
+from src.decoder.candidate_chooser import choose_from_candidates
 from src.model.input_format import FunctionDef
 from src.model.llm_protocol import LLMProtocol
 
@@ -26,47 +27,4 @@ def choose_function_name(
         f"Request: {prompt_text}\n"
         "Answer with the function name only:\n"
     )
-
-    input_ids: list[int] = llm.encode(context).squeeze(0).tolist()
-    candidates = dict(name_to_ids)
-    pos = 0
-
-    while True:
-        allowed = {ids[pos] for ids in candidates.values() if pos < len(ids)}
-        if not allowed:
-            break
-
-        logits = llm.get_logits_from_input_ids(input_ids)
-        next_id = max(allowed, key=lambda tid: logits[tid])
-
-        if verbose:
-            top = sorted(
-                candidates,
-                key=lambda n: logits[candidates[n][pos]] if pos < len(candidates[n]) else -1e30,
-                reverse=True,
-            )[:3]
-            print(f"  [fn step {pos}] candidates={top} -> token_id={next_id}")
-
-        input_ids.append(next_id)
-        candidates = {
-            name: ids
-            for name, ids in candidates.items()
-            if pos < len(ids) and ids[pos] == next_id
-        }
-        pos += 1
-
-        if len(candidates) == 1:
-            (only_name, only_ids), = candidates.items()
-            if pos >= len(only_ids):
-                return only_name
-    if not candidates:
-        logits = llm.get_logits_from_input_ids(input_ids)
-        best = max(
-            name_to_ids,
-            key=lambda n: sum(logits[tid] for tid in name_to_ids[n] if tid < len(logits)),
-        )
-        if verbose:
-            print(f"  [fn recovery] no candidates left, scored all -> {best}")
-        return best
-
-    return next(iter(candidates))
+    return choose_from_candidates(llm, context, name_to_ids, verbose=verbose, log_label="fn")

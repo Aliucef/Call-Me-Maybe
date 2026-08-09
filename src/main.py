@@ -1,13 +1,12 @@
 import json
-import os
 import sys
 from pathlib import Path
 
 from llm_sdk import Small_LLM_Model
 
 from src.decoder.function_chooser import choose_function_name
-from src.decoder.number_decoder import decode_number
-from src.decoder.string_decoder import decode_string
+from src.decoder.number_decoder import resolve_number
+from src.decoder.string_decoder import resolve_string
 from src.exceptions import InputFileError
 from src.model.input_format import FunctionDef, OutputDict, PormptExample
 from src.model.llm_protocol import LLMProtocol
@@ -15,22 +14,10 @@ from src.parser.parse import parse_args
 from src.parser.validator import load_function_definitions, load_prompt_examples
 
 
-def load_vocab_maps(vocab_path: str) -> tuple[dict[str, int], list[str]]:
-    """Load vocab.json and build a reverse id-to-token list."""
-    with open(vocab_path, "r", encoding="utf-8") as f:
-        token_to_id: dict[str, int] = json.load(f)
-    vocab_size = len(token_to_id)
-    id_to_token = [""] * vocab_size
-    for tok, tid in token_to_id.items():
-        if 0 <= tid < vocab_size:
-            id_to_token[tid] = tok
-    return token_to_id, id_to_token
-
-
 def setup_llm(
     model: str,
     functions: list[FunctionDef],
-) -> tuple[LLMProtocol, dict[str, list[int]], list[str]]:
+) -> tuple[LLMProtocol, dict[str, list[int]]]:
     """Instantiate the LLM and build token lookup structures."""
     llm: LLMProtocol = Small_LLM_Model(model_name=model)
     name_to_ids: dict[str, list[int]] = {
@@ -38,10 +25,7 @@ def setup_llm(
         for f in functions
     }
     name_to_ids = {n: ids for n, ids in name_to_ids.items() if ids}
-    vocab_path = str(Path(model) / "vocab.json") if os.path.isdir(model) \
-        else llm.get_path_to_vocab_file()
-    _, id_to_token = load_vocab_maps(vocab_path)
-    return llm, name_to_ids, id_to_token
+    return llm, name_to_ids
 
 
 def process_prompt(
@@ -50,7 +34,6 @@ def process_prompt(
     functions: list[FunctionDef],
     fn_by_name: dict[str, FunctionDef],
     name_to_ids: dict[str, list[int]],
-    id_to_token: list[str],
     verbose: bool,
 ) -> OutputDict:
     """Choose a function and decode all its parameters for one prompt."""
@@ -67,19 +50,17 @@ def process_prompt(
     parameters: dict[str, object] = {}
     for param_name, schema in fn.parameters.items():
         if schema.type == "number":
-            parameters[param_name] = decode_number(
+            parameters[param_name] = resolve_number(
                 llm,
                 prompt_text=item.prompt,
-                id_to_token=id_to_token,
                 param_name=param_name,
                 already_extracted=dict(parameters),
                 verbose=verbose,
             )
         elif schema.type == "string":
-            parameters[param_name] = decode_string(
+            parameters[param_name] = resolve_string(
                 llm,
                 prompt_text=item.prompt,
-                id_to_token=id_to_token,
                 param_name=param_name,
                 already_extracted=dict(parameters),
                 verbose=verbose,
@@ -106,9 +87,9 @@ def main() -> None:
     except InputFileError as e:
         sys.exit(f"[ERROR] {e}")
     fn_by_name = {f.name: f for f in functions}
-    llm, name_to_ids, id_to_token = setup_llm(args.model, functions)
+    llm, name_to_ids = setup_llm(args.model, functions)
     output = [
-        process_prompt(llm, item, functions, fn_by_name, name_to_ids, id_to_token, args.verbose)
+        process_prompt(llm, item, functions, fn_by_name, name_to_ids, args.verbose)
         for item in prompts
     ]
     write_output(output, args.output)
