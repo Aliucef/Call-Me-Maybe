@@ -13,7 +13,7 @@ run:
 	uv run python -m src --functions_definition $(FUNCTIONS) --input $(INPUT) --output $(OUTPUT)
 
 debug:
-	uv run python -m pdb -c "import src.main; src.main.main()"
+	uv run python -m pdb -m src --functions_definition $(FUNCTIONS) --input $(INPUT) --output $(OUTPUT)
 
 clean:
 	find . -type d -name '__pycache__' -prune -exec rm -rf {} +

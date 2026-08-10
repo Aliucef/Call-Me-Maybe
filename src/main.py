@@ -39,6 +39,9 @@ def process_prompt(
     """Choose a function and decode all its parameters for one prompt."""
     if verbose:
         print(f"\nPrompt: {item.prompt}")
+    if not item.prompt.strip():
+        print(f"{item.prompt!r}  ->  empty_promt  params={{}}")
+        return OutputDict(prompt=item.prompt, name="empty_promt", parameters={})
     name = choose_function_name(
         llm,
         prompt_text=item.prompt,
@@ -86,8 +89,13 @@ def main() -> None:
         prompts = load_prompt_examples(args.input)
     except InputFileError as e:
         sys.exit(f"[ERROR] {e}")
+    if not functions:
+        sys.exit(f"[ERROR] {args.functions_definition} contains no function definitions")
     fn_by_name = {f.name: f for f in functions}
-    llm, name_to_ids = setup_llm(args.model, functions)
+    try:
+        llm, name_to_ids = setup_llm(args.model, functions)
+    except Exception as e:
+        sys.exit(f"[ERROR] could not load model {args.model!r}: {e}")
     output = [
         process_prompt(llm, item, functions, fn_by_name, name_to_ids, args.verbose)
         for item in prompts
