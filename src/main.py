@@ -4,6 +4,7 @@ from pathlib import Path
 
 from llm_sdk import Small_LLM_Model
 
+from src.decoder.boolean_decoder import resolve_boolean
 from src.decoder.function_chooser import choose_function_name
 from src.decoder.number_decoder import resolve_number
 from src.decoder.string_decoder import resolve_string
@@ -62,6 +63,14 @@ def process_prompt(
             )
         elif schema.type == "string":
             parameters[param_name] = resolve_string(
+                llm,
+                prompt_text=item.prompt,
+                param_name=param_name,
+                already_extracted=dict(parameters),
+                verbose=verbose,
+            )
+        elif schema.type == "boolean":
+            parameters[param_name] = resolve_boolean(
                 llm,
                 prompt_text=item.prompt,
                 param_name=param_name,
