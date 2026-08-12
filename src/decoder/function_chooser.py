@@ -10,11 +10,7 @@ def choose_function_name(
     name_to_ids: dict[str, list[int]],
     verbose: bool = False,
 ) -> str:
-    """Select the best matching function name using constrained greedy decoding.
-
-    At each step only tokens that continue a valid candidate function name
-    are eligible, so the result is always a name from name_to_ids.
-    """
+    """Select the best matching function name using constrained greedy decoding."""
     lines = [
         f"- {f.name}: {f.description or ''} params={list(f.parameters.keys())}"
         for f in functions

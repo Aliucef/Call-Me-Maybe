@@ -35,9 +35,7 @@ def extract_quoted_spans(prompt_text: str) -> list[str]:
 
 
 def extract_regex_pattern_candidates(prompt_text: str) -> list[str]:
-    """Return built-in regex patterns for any recognized textual-category
-    concept word (e.g. "numbers", "vowels") mentioned in the prompt, in
-    order of appearance."""
+    """Return built-in regex patterns for recognized concept words in the prompt."""
     found: list[str] = []
     for word in _CONCEPT_WORD.findall(prompt_text):
         pattern = _REGEX_CONCEPTS.get(word.lower())
@@ -47,20 +45,7 @@ def extract_regex_pattern_candidates(prompt_text: str) -> list[str]:
 
 
 def extract_trailing_word_candidate(prompt_text: str) -> list[str]:
-    """Return the last standalone (non-quoted) word in the prompt, if any.
-
-    A last-resort single candidate for a literal value that appears
-    verbatim but unquoted at the end of the sentence (e.g. a replacement
-    token in "... with asterisks"). Natural-language requests commonly put
-    the sentence's final complement last, so this is a general positional
-    signal rather than one tied to a specific keyword or function.
-
-    Requires at least two leftover words. "Last" is only a meaningful
-    signal relative to something earlier in the sentence -- with a single
-    leftover word (e.g. a bare "Greet" with no name at all), there is
-    nothing to distinguish an instruction word from an actual payload, so
-    this deliberately returns nothing rather than guessing.
-    """
+    """Return the last standalone unquoted word in the prompt, if any."""
     unquoted = _QUOTED_SPAN.sub(" ", prompt_text)
     words = _CONCEPT_WORD.findall(unquoted)
     return [words[-1]] if len(words) >= 2 else []
@@ -74,21 +59,7 @@ def choose_string(
     already_extracted: dict[str, object] | None = None,
     verbose: bool = False,
 ) -> str | None:
-    """Pick a value that appears quoted in the prompt via constrained
-    candidate-narrowing decoding (same mechanism as choose_function_name /
-    choose_number).
-
-    Tries three tiers, each only consulted if the previous one is empty:
-    1. Quoted substrings — values guaranteed to appear verbatim.
-    2. A small built-in library of regex patterns for common textual
-       category concepts (see _REGEX_CONCEPTS), when the prompt mentions
-       one — a regex pattern is never literal prompt text, so it can only
-       come from domain knowledge, not extraction.
-    3. The prompt's trailing unquoted word — a positional fallback for a
-       literal value that's unquoted (e.g. a name, or a replacement token
-       at the end of the sentence).
-    Returns None if none of the three yield anything.
-    """
+    """Pick a value from quoted spans, known regex concepts, or the trailing word."""
     used_values = {v for v in (already_extracted or {}).values() if isinstance(v, str)}
     unique_spans = list(dict.fromkeys(extract_quoted_spans(prompt_text)))
     remaining = [s for s in unique_spans if s not in used_values]
@@ -143,15 +114,7 @@ def resolve_string(
     already_extracted: dict[str, object] | None = None,
     verbose: bool = False,
 ) -> str:
-    """Resolve a string parameter end to end.
-
-    Tries choose_string(), which only ever returns a value that literally
-    appears in the prompt (quoted, a known regex-pattern concept, or the
-    trailing word). If none of those tiers found anything grounded to
-    extract, this prints a clear error and defaults to an empty string,
-    since the output schema requires every parameter present even when the
-    request is genuinely underspecified.
-    """
+    """Resolve a string parameter, defaulting to "" if none is found."""
     value = choose_string(
         llm,
         prompt_text,

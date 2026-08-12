@@ -8,12 +8,7 @@ def choose_from_candidates(
     verbose: bool = False,
     log_label: str = "choice",
 ) -> str:
-    """Select the best matching candidate using constrained greedy decoding.
-
-    At each step only tokens that continue at least one surviving candidate
-    are eligible, so the result is always a key from candidates_by_key.
-    Shared by function name selection and in-prompt number selection.
-    """
+    """Select the best matching candidate using constrained greedy decoding."""
     input_ids: list[int] = llm.encode(context).squeeze(0).tolist()
     original = dict(candidates_by_key)
     candidates = dict(candidates_by_key)

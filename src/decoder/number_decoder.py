@@ -20,18 +20,7 @@ def choose_number(
     already_extracted: dict[str, object] | None = None,
     verbose: bool = False,
 ) -> float | None:
-    """Pick a number that literally appears in the prompt via constrained
-    candidate-narrowing decoding (same mechanism as choose_function_name).
-
-    Restricts the choice to the actual numbers found in the prompt — the
-    model can never hallucinate a value that isn't there, and picking
-    between a handful of known candidates is an easier task than free
-    generation. Returns None if the prompt has no number-like substrings,
-    or if every occurrence of every number mentioned has already been
-    claimed by an earlier parameter (e.g. "sum of 2 and ?" only has one
-    number for two parameters — the second must not silently repeat the
-    first).
-    """
+    """Pick a number that literally appears in the prompt, or None if none is available."""
     candidate_strs = extract_number_candidates(prompt_text)
     if not candidate_strs:
         return None
@@ -93,17 +82,7 @@ def resolve_number(
     already_extracted: dict[str, object] | None = None,
     verbose: bool = False,
 ) -> float:
-    """Resolve a numeric parameter end to end.
-
-    Tries choose_number(), which only ever returns a value that literally
-    appears in the prompt. If there is no legitimate number for this
-    parameter -- no number-like substring in the prompt at all, or every
-    occurrence already claimed by an earlier parameter (e.g. "sum of 2
-    and ?" has only one number for two parameters) -- there is nothing to
-    extract, this prints a clear error and defaults to 0.0, since the
-    output schema requires every parameter present with a valid type even
-    when the request is genuinely underspecified.
-    """
+    """Resolve a numeric parameter, defaulting to 0.0 if none is found."""
     value = choose_number(
         llm,
         prompt_text,

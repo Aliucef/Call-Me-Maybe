@@ -1,9 +1,7 @@
 import json
 import sys
 from pathlib import Path
-
 from llm_sdk import Small_LLM_Model
-
 from src.decoder.boolean_decoder import resolve_boolean
 from src.decoder.function_chooser import choose_function_name
 from src.decoder.number_decoder import resolve_number

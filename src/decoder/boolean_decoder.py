@@ -28,17 +28,7 @@ def resolve_boolean(
     already_extracted: dict[str, object] | None = None,
     verbose: bool = False,
 ) -> bool:
-    """Resolve a boolean parameter using constrained candidate-narrowing decoding.
-
-    Unlike numbers and strings, a boolean is rarely a literal substring of
-    the prompt -- it's a judgment about the request (e.g. "is repeat
-    enabled?"). So instead of extracting a candidate from the prompt text,
-    the candidate set is the fixed pair {"true", "false"} and the model
-    picks between them with the same logit-masking mechanism used
-    everywhere else in this pipeline (see choose_from_candidates), which
-    guarantees the result is always a real boolean and never a
-    hallucinated token.
-    """
+    """Resolve a boolean parameter by choosing between "true" and "false"."""
     label = f'"{param_name}"' if param_name else "the boolean value"
     prior = ""
     if already_extracted:
