@@ -24,9 +24,9 @@ uv run python -m src --model /path/to/local/model
 
 **Subject:** *Advanced error recovery mechanisms*
 
-**Where:** `src/decoder/function_chooser.py:choose_function_name()` lines 65–73
+**Where:** `src/decoder/candidate_chooser.py:choose_from_candidates()` — the `if not candidates:` block (currently lines 82–94)
 
-When the candidate set is exhausted before a single name is resolved (ambiguous tokens), the decoder falls back to scoring every function name against the current logits and returns the highest-scoring one — instead of crashing or returning an arbitrary result.
+This is the one shared decoding primitive every decoder (function name, number, string, boolean) funnels through. If narrowing ever eliminated every candidate, instead of crashing it falls back to scoring every original candidate by summing the logits of its own token ids and returns the highest-scoring one. In the current pipeline every caller already filters out an empty candidate set before calling in, so this specifically guards the shared primitive itself rather than any one caller — see `tests/test_candidate_chooser.py::test_empty_candidates_raises` for the one remaining edge case (an empty dict from the start) that still raises rather than recovers.
 
 ---
 
@@ -34,10 +34,10 @@ When the candidate set is exhausted before a single name is resolved (ambiguous 
 
 **Subject:** *Performance optimizations (caching, batching)*
 
-**Where:** `src/decoder/number_decoder.py` — module-level `_allowed_number_cache: dict[str, set[int]]`
-`src/decoder/number_decoder.py:allowed_next_number_tokens()` — returns from cache on hit
+**Where:** `src/decoder/number_decoder.py` — module-level `_number_encode_cache: dict[str, list[int]]`
+`src/decoder/number_decoder.py:encode_number_candidate()` — returns from cache on hit
 
-`allowed_next_number_tokens` is a pure function of the partially-built number string and the vocabulary. Results are cached on first call and reused across all prompts in a run, eliminating repeated vocab scans.
+Encoding a numeric literal (e.g. `"2"`) to token ids is a pure function of the string and the (fixed, per-run) tokenizer vocabulary. Prompts across the same run frequently share literals, so results are cached on first call and reused for the rest of the run, skipping repeated tokenizer calls for values already seen. Covered by `tests/test_number_decoder.py::TestEncodeNumberCandidateCache`.
 
 ---
 
@@ -45,10 +45,13 @@ When the candidate set is exhausted before a single name is resolved (ambiguous 
 
 **Subject:** *Comprehensive test suite*
 
-**Where:** `tests/test_number_decoder.py` — 11 tests
-`tests/test_function_chooser.py` — 5 tests
+**Where:** `tests/test_function_chooser.py` — 5 tests
+`tests/test_number_decoder.py` — 11 tests
+`tests/test_string_decoder.py` — 14 tests
+`tests/test_boolean_decoder.py` — 4 tests
+`tests/test_candidate_chooser.py` — 5 tests
 
-16 tests total. All use a `MockLLM` that satisfies `LLMProtocol` without downloading any model.
+39 tests total, covering every decoder module plus the shared `choose_from_candidates()` primitive (including a documented edge case in prefix-collision behaviour and the empty-candidates guard). All use a shared `MockLLM` (`tests/conftest.py`) that satisfies `LLMProtocol` without downloading any model.
 
 ```bash
 uv run pytest tests/ -v

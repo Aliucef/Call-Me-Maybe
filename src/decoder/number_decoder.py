@@ -6,10 +6,22 @@ from src.model.llm_protocol import LLMProtocol
 
 _NUMBER_LITERAL = re.compile(r"-?\d+(?:\.\d+)?")
 
+_number_encode_cache: dict[str, list[int]] = {}
+
 
 def extract_number_candidates(prompt_text: str) -> list[str]:
     """Return every number literal that appears verbatim in the prompt, in order."""
     return _NUMBER_LITERAL.findall(prompt_text)
+
+
+def encode_number_candidate(llm: LLMProtocol, literal: str) -> list[int]:
+    """Encode a numeric literal to token ids, reusing a cached result if seen before."""
+    cached = _number_encode_cache.get(literal)
+    if cached is not None:
+        return cached
+    ids: list[int] = llm.encode(literal).squeeze(0).tolist()
+    _number_encode_cache[literal] = ids
+    return ids
 
 
 def choose_number(
@@ -44,7 +56,7 @@ def choose_number(
 
     candidates_by_key = {
         s: ids
-        for s, ids in ((s, llm.encode(s).squeeze(0).tolist()) for s in remaining)
+        for s, ids in ((s, encode_number_candidate(llm, s)) for s in remaining)
         if ids
     }
     if not candidates_by_key:
