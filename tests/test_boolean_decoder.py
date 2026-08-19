@@ -1,4 +1,3 @@
-"""Unit tests for boolean_decoder — LLM is mocked."""
 from src.decoder.boolean_decoder import resolve_boolean
 from tests.conftest import MockLLM
 

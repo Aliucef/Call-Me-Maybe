@@ -1,4 +1,3 @@
-"""Unit tests for number_decoder — LLM is mocked."""
 import pytest
 
 import src.decoder.number_decoder as number_decoder
@@ -37,8 +36,6 @@ class TestChooseNumber:
         assert choose_number(llm, "Greet john") is None
 
     def test_occurrence_counting_allows_repeated_value(self) -> None:
-        """"sum of 2 and 2" has two real occurrences of 2, so the second
-        parameter must still resolve to 2.0 instead of running out."""
         llm = MockLLM()
         llm.prefer("2")
         first = choose_number(llm, "sum of 2 and 2", param_name="a")
@@ -91,8 +88,6 @@ class TestEncodeNumberCandidateCache:
         assert llm.encode_calls == ["1", "2"]
 
     def test_shared_literal_across_prompts_reuses_cache(self) -> None:
-        """Simulates two prompts in the same run that both mention "2" --
-        the second prompt's resolution should not re-encode it."""
         llm = MockLLM()
         llm.prefer("2")
         choose_number(llm, "sum of 2 and 3", param_name="a")

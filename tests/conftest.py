@@ -1,16 +1,8 @@
-"""Shared pytest fixtures: a deterministic mock of Small_LLM_Model."""
 import torch
 
 
 class MockLLM:
-    """Deterministic stand-in for Small_LLM_Model.
-
-    Encodes each distinct string as a single, unique token id (assigned in
-    first-seen order), and can be told which token id to favour at each
-    decoding step -- either an explicit per-call sequence of raw ids, or a
-    "sticky" id (via `prefer()`) that stays favoured until changed. This
-    keeps candidate-narrowing tests independent of any real tokenizer.
-    """
+    """Deterministic stand-in for Small_LLM_Model."""
 
     def __init__(
         self,
