@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by Aliuc.*
+*This project has been created as part of the 42 curriculum by alyousse.*
 
 # Call Me Maybe
 

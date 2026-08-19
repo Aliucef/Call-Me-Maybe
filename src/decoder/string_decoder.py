@@ -6,15 +6,6 @@ from src.model.llm_protocol import LLMProtocol
 _QUOTED_SPAN = re.compile(r"'([^']*)'|\"([^\"]*)\"")
 _CONCEPT_WORD = re.compile(r"[A-Za-z]+")
 
-# Built-in regex patterns for common textual-category concepts. This is
-# domain knowledge about regex syntax itself -- the same kind of built-in
-# grammar allowed_next_number_tokens() already relies on for number
-# literals -- not a lookup tied to a specific function name or exact
-# prompt wording, so it doesn't reintroduce the "hardcoded prompt"
-# heuristic the subject forbids for function selection. A regex pattern
-# like "\d+" never appears verbatim in a prompt like "replace all
-# numbers", so no amount of extraction from the prompt text alone can
-# produce it -- it has to come from knowing what "numbers" means in regex.
 _REGEX_CONCEPTS: dict[str, str] = {
     "number": r"\d+", "numbers": r"\d+", "digit": r"\d+", "digits": r"\d+",
     "vowel": r"[aeiouAEIOU]", "vowels": r"[aeiouAEIOU]",
@@ -71,12 +62,6 @@ def choose_string(
         remaining = [w for w in trailing_word if w not in used_values]
     if not remaining:
         return None
-
-    # Longer spans tend to be the text being operated on (e.g. source_string
-    # in a substitution call); shorter ones tend to be find/replace
-    # targets. Sorting longest-first lets the model's own "pick the first
-    # listed option" bias work for us instead of against us, the same
-    # trick used in choose_number for already-used values.
     remaining.sort(key=len, reverse=True)
 
     candidates_by_key = {

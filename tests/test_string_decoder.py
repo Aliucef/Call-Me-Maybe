@@ -11,10 +11,6 @@ from src.decoder.string_decoder import (
 from tests.conftest import MockLLM
 
 
-# ---------------------------------------------------------------------------
-# extract_quoted_spans
-# ---------------------------------------------------------------------------
-
 class TestExtractQuotedSpans:
     def test_mixed_quote_styles_in_order(self) -> None:
         prompt = "Substitute the word 'cat' with \"dog\" in 'the cat sat'"
@@ -24,26 +20,17 @@ class TestExtractQuotedSpans:
         assert extract_quoted_spans("Greet john") == []
 
 
-# ---------------------------------------------------------------------------
-# extract_regex_pattern_candidates
-# ---------------------------------------------------------------------------
-
 class TestExtractRegexPatternCandidates:
     def test_recognizes_known_concept_word(self) -> None:
         assert extract_regex_pattern_candidates("Replace all vowels here") == [r"[aeiouAEIOU]"]
 
     def test_deduplicates_same_pattern(self) -> None:
-        # "numbers" and "number" both map to \d+ -- only one candidate should surface.
         result = extract_regex_pattern_candidates("Replace all numbers, every number")
         assert result == [r"\d+"]
 
     def test_unknown_words_yield_no_candidates(self) -> None:
         assert extract_regex_pattern_candidates("Greet john") == []
 
-
-# ---------------------------------------------------------------------------
-# extract_trailing_word_candidate
-# ---------------------------------------------------------------------------
 
 class TestExtractTrailingWordCandidate:
     def test_returns_last_word_when_enough_words(self) -> None:
@@ -52,10 +39,6 @@ class TestExtractTrailingWordCandidate:
     def test_single_word_returns_empty(self) -> None:
         assert extract_trailing_word_candidate("Greet") == []
 
-
-# ---------------------------------------------------------------------------
-# choose_string (three-tier extraction)
-# ---------------------------------------------------------------------------
 
 class TestChooseString:
     def test_prefers_quoted_span_over_regex_concept(self) -> None:
@@ -91,10 +74,6 @@ class TestChooseString:
         )
         assert result == "dog"
 
-
-# ---------------------------------------------------------------------------
-# resolve_string
-# ---------------------------------------------------------------------------
 
 class TestResolveString:
     def test_returns_choice_when_available(self) -> None:

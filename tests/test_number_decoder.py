@@ -17,10 +17,6 @@ def _clear_encode_cache() -> None:
     number_decoder._number_encode_cache.clear()
 
 
-# ---------------------------------------------------------------------------
-# extract_number_candidates
-# ---------------------------------------------------------------------------
-
 class TestExtractNumberCandidates:
     def test_finds_all_literals_in_order(self) -> None:
         assert extract_number_candidates("sum of 2 and 3.5, then -4") == ["2", "3.5", "-4"]
@@ -28,10 +24,6 @@ class TestExtractNumberCandidates:
     def test_no_numbers_returns_empty(self) -> None:
         assert extract_number_candidates("Greet john") == []
 
-
-# ---------------------------------------------------------------------------
-# choose_number
-# ---------------------------------------------------------------------------
 
 class TestChooseNumber:
     def test_picks_the_preferred_candidate(self) -> None:
@@ -70,10 +62,6 @@ class TestChooseNumber:
         assert second is None
 
 
-# ---------------------------------------------------------------------------
-# resolve_number
-# ---------------------------------------------------------------------------
-
 class TestResolveNumber:
     def test_returns_choice_when_available(self) -> None:
         llm = MockLLM()
@@ -87,17 +75,13 @@ class TestResolveNumber:
         assert "[ERROR]" in capsys.readouterr().out
 
 
-# ---------------------------------------------------------------------------
-# encode_number_candidate caching (bonus: performance optimization)
-# ---------------------------------------------------------------------------
-
 class TestEncodeNumberCandidateCache:
     def test_second_call_hits_cache(self) -> None:
         llm = MockLLM()
         first_ids = encode_number_candidate(llm, "42")
         assert llm.encode_calls == ["42"]
         second_ids = encode_number_candidate(llm, "42")
-        assert llm.encode_calls == ["42"]  # no repeat encode() call -> cache hit
+        assert llm.encode_calls == ["42"]
         assert first_ids == second_ids
 
     def test_different_literals_both_encode(self) -> None:

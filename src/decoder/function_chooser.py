@@ -1,5 +1,3 @@
-import sys
-
 from src.decoder.candidate_chooser import choose_from_candidates
 from src.model.input_format import FunctionDef
 from src.model.llm_protocol import LLMProtocol
@@ -17,11 +15,7 @@ def choose_function_name(
         f"- {f.name}: {f.description or ''} params={list(f.parameters.keys())}"
         for f in functions
     ]
-    print(lines)
-    print("/////////////////////////////////////")
     menu = "\n".join(lines)
-    print(menu)
-    sys.exit(0)
     context = (
         "Choose the best function for the request.\n"
         "Available functions:\n"

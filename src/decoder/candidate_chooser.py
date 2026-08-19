@@ -29,7 +29,6 @@ def choose_from_candidates(
                 reverse=True,
             )[:3]
             print(f"  [{log_label} step {pos}] candidates={top} -> token_id={next_id}")
-
         input_ids.append(next_id)
         candidates = {
             key: ids
@@ -40,6 +39,8 @@ def choose_from_candidates(
 
         if len(candidates) == 1:
             (only_key, only_ids), = candidates.items()
+            if verbose:
+                print(f"  [{log_label} step {pos}] only candidate left: {only_key}")
             if pos >= len(only_ids):
                 return only_key
 

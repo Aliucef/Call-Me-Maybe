@@ -36,19 +36,12 @@ def choose_number(
     candidate_strs = extract_number_candidates(prompt_text)
     if not candidate_strs:
         return None
-
-    # Count *occurrences*, not just distinct values, so "sum of 2 and 2"
-    # (two real occurrences of 2) still correctly allows both parameters
-    # to get 2.0, while "sum of 2 and ?" (one occurrence) correctly runs
-    # out of candidates for the second parameter instead of reusing the
-    # first value just because it's the only one that exists.
     prompt_counts = Counter(float(s) for s in candidate_strs)
     used_counts = Counter(
         float(v)
         for v in (already_extracted or {}).values()
         if isinstance(v, (int, float)) and not isinstance(v, bool)
     )
-
     unique_strs = list(dict.fromkeys(candidate_strs))
     remaining = [s for s in unique_strs if prompt_counts[float(s)] > used_counts[float(s)]]
     if not remaining:

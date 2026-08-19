@@ -39,8 +39,8 @@ def process_prompt(
     if verbose:
         print(f"\nPrompt: {item.prompt}")
     if not item.prompt.strip():
-        print(f"{item.prompt!r}  ->  empty_promt  params={{}}")
-        return OutputDict(prompt=item.prompt, name="empty_promt", parameters={})
+        print(f"{item.prompt!r}  ->  empty_prompt  params={{}}")
+        return OutputDict(prompt=item.prompt, name="empty_prompt", parameters={})
     name = choose_function_name(
         llm,
         prompt_text=item.prompt,
@@ -98,6 +98,8 @@ def main() -> None:
         sys.exit(f"[ERROR] {e}")
     if not functions:
         sys.exit(f"[ERROR] {args.functions_definition} contains no function definitions")
+    if not prompts:
+        sys.exit(f"[ERROR] {args.input} contains no prompt examples")
     fn_by_name = {f.name: f for f in functions}
     try:
         llm, name_to_ids = setup_llm(args.model, functions)
@@ -108,7 +110,3 @@ def main() -> None:
         for item in prompts
     ]
     write_output(output, args.output)
-
-
-if __name__ == "__main__":
-    main()

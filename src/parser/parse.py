@@ -10,13 +10,13 @@ def parse_args() -> argparse.Namespace:
         prog=const.PROG_NAME,
         description=const.PROG_DESCRIPTION,
     )
-    params.add_argument(const.FLAG1, type=Path,
+    params.add_argument(const.FUNCTIONS_FLAG, type=Path,
                         default=Path(const.PATH1),
                         help=const.HELP1)
-    params.add_argument(const.FLAG2, type=Path,
+    params.add_argument(const.INPUT_FLAG, type=Path,
                         default=Path(const.PATH2),
                         help=const.HELP2)
-    params.add_argument(const.FLAG3, type=Path,
+    params.add_argument(const.OUTPUT_FLAG, type=Path,
                         default=Path(const.PATH3),
                         help=const.HELP3)
     params.add_argument(

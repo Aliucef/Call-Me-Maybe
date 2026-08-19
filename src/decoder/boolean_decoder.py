@@ -4,11 +4,6 @@ from src.model.llm_protocol import LLMProtocol
 _TRUE = "true"
 _FALSE = "false"
 
-# Generic on/off, enable/disable few-shot examples -- not tied to any
-# specific function name or prompt wording, just priming the model on the
-# true/false judgment task itself. A 0.6B model answers this kind of
-# binary intent question far more reliably with a couple of worked
-# examples than with the bare instruction alone.
 _FEW_SHOT_EXAMPLES = (
     "Examples:\n"
     "Request: Turn on the lights\nAnswer: true\n"
