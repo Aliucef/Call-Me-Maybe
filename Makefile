@@ -4,9 +4,16 @@ FUNCTIONS := data/input/functions_definition.json
 INPUT := data/input/function_calling_tests.json
 OUTPUT := data/output/function_calling_results.json
 
+CACHE_DIR := $(CURDIR)/.cache
+export UV_CACHE_DIR ?= $(CACHE_DIR)/uv
+export TMPDIR ?= $(CACHE_DIR)/tmp
+export HF_HOME ?= $(CACHE_DIR)/huggingface
+export HF_HUB_DISABLE_XET ?= 1
+
 .PHONY: install run debug clean lint lint-strict
 
 install:
+	mkdir -p $(UV_CACHE_DIR) $(TMPDIR) $(HF_HOME)
 	uv sync
 
 run:
